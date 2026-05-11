@@ -47,14 +47,14 @@
             const text = input.value.trim();
             if (!text || !aiSession) return;
 
-            addMessage('user', text);
+            addMessage('\n$USER\n', text);
             input.value = '';
 
-            const aiMsgDiv = addMessage('ai', '...');
+            const aiMsgDiv = addMessage('\n$MODEL\n', '...');
             let fullResponse = "";
 
             try {
-                const stream = aiSession.promptStreaming(text);
+                const stream = aiSession.promptStreaming("$USER\n" + text + "\n$MODEL);
                 for await (const chunk of stream) {
                     fullResponse = chunk; // chunk is the full text so far in Chrome's API
                     aiMsgDiv.innerText = fullResponse;
