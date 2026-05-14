@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gemini Nano Chat Studio</title>
+  <title>Gemini Local Chat</title>
   <style>
     .thinking{
       display:flex;
@@ -132,7 +132,8 @@
         <div class="small" id="meterText" style="margin-top:6px">No active session yet.</div>
       </div>
       <div style="margin-bottom:12px" class="small" id="explain">
-        Gemini Nano runs locally in Chrome when supported. The app keeps separate chats, adds system context, and rebuilds sessions when settings change.
+        Gemini Nano runs locally in Chrome (and a few other browsers) when supported, If not go to chrome://flags/ and enable Prompt API for Gemini Nano. LocalLLM Prompt interface by OxillenGlow and ChatGPT.
+        https://oxillenglow.github.io/UI4chromeLLLM/
       </div>
       <div class="row" style="margin-bottom:10px">
         <button id="connectBtn">Connect</button>
@@ -146,10 +147,9 @@
 const KEY="gn_chat_v1";
 const presets={
   balanced:{label:"Balanced",prompt:"You are helpful, concise, and accurate."},
-  technical:{label:"Technical",prompt:"You are a senior software engineer. Be direct and practical."},
+  code:{label:"Technical",prompt:"You are a senior software engineer. Be direct and practical."},
   creative:{label:"Creative",prompt:"You are imaginative and offer varied ideas."},
-  teacher:{label:"Teacher",prompt:"You explain clearly, step by step."},
-  editor:{label:"Editor",prompt:"You improve clarity, structure, and tone."},
+  texteditor:{label:"Editor",prompt:"You improve clarity, structure, and tone."},
   custom:{label:"Custom",prompt:""}
 };
 let state={active:null,chats:[],model:null,cache:new Map()};
