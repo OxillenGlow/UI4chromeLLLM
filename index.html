@@ -5,6 +5,26 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Gemini Nano Chat Studio</title>
   <style>
+    .thinking{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      color:var(--muted);
+      padding:10px 0;
+    }
+    .thinking span{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:var(--accent);
+      animation:pulse .8s infinite alternate;
+    }
+      .thinking span:nth-child(2){animation-delay:.2s}
+      .thinking span:nth-child(3){animation-delay:.4s}
+      @keyframes pulse{
+      from{opacity:.3;transform:scale(.8)}
+      to{opacity:1;transform:scale(1.2)}
+    }
     :root{--bg:#0b1020;--panel:#11182c;--text:#e8eefc;--muted:#9fb0d0;--border:#24304d;--accent:#7c9cff;--radius:16px}
     *{box-sizing:border-box} html,body{height:100%;margin:0;font:14px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--text)}
     body{display:grid;grid-template-columns:260px 1fr 300px;gap:12px;padding:12px}
@@ -153,7 +173,13 @@ function load(){
 function save(){localStorage.setItem(KEY,JSON.stringify({active:state.active,chats:state.chats}))}
 
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
-function renderText(s){return escapeHtml(String(s)).replace(/\n/g,"<br>").replace(/`([^`]+)`/g,"<code>$1</code>")}
+function renderText(s){
+  if(String(s).includes('class="thinking"')) return s;
+
+  return escapeHtml(String(s))
+    .replace(/\n/g,"<br>")
+    .replace(/`([^`]+)`/g,"<code>$1</code>");
+}
 
 function renderChats(){
   $("chatList").innerHTML=state.chats.map(c=>`
@@ -246,7 +272,10 @@ async function send(){
   renderAll();
   save();
 
-  const out={role:"assistant",content:""};
+  const out={
+    role:"assistant",
+    content:'<div class="thinking"><span></span><span></span><span></span> Thinking...</div>'
+  };
   c.messages.push(out);
   renderAll();
   save();
@@ -265,6 +294,7 @@ async function send(){
     const stream=await sess.promptStreaming(prompt);
     out.content="";
     for await (const chunk of stream){
+      if(out.content.includes('class="thinking"')) out.content="";
       out.content+=chunk;
       renderMsgs();
       save();
