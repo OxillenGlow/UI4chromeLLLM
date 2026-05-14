@@ -2,114 +2,205 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Gemini Nano Local Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Nano Sandbox</title>
     <style>
-        body { font-family: sans-serif; max-width: 700px; margin: 20px auto; display: flex; flex-direction: column; height: 90vh; }
-        #chat-window { flex: 1; border: 1px solid #ccc; overflow-y: auto; padding: 15px; background: #fafafa; margin-bottom: 10px; }
-        .msg { margin-bottom: 12px; padding: 10px; border-radius: 8px; line-height: 1.4; }
-        .user { background: #e3f2fd; border-left: 5px solid #2196f3; }
-        .ai { background: #f1f8e9; border-left: 5px solid #4caf50; }
-        .controls { margin-bottom: 15px; display: flex; gap: 8px; }
-        textarea { width: 100%; height: 80px; padding: 10px; box-sizing: border-box; }
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --accent: #38bdf8;
+            --error: #ef4444;
+            --success: #22c55e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+        #sidebar { width: 320px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        #chat-container { flex: 1; display: flex; flex-direction: column; height: 100%; position: relative; }
+        h3 { font-size: 14px; text-transform: uppercase; tracking: 0.05em; color: #94a3b8; margin-bottom: 5px; }
+        .status-card { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
+        textarea, input, select { width: 100%; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 10px; font-size: 13px; resize: none; outline: none; }
+        textarea:focus, input:focus { border-color: var(--accent); }
+        button { background: var(--accent); color: #0f172a; font-weight: 600; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: var(--border); color: #64748b; cursor: not-allowed; }
+        #history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 85%; padding: 12px 16px; border-radius: 8px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+        .user { background: var(--accent); color: #0f172a; align-self: flex-end; }
+        .model { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; }
+        .system-msg { align-self: center; font-size: 12px; color: #64748b; background: transparent; padding: 0; }
+        #input-area { padding: 20px; border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="controls">
-        <button onclick="saveToFile()">Export JSON</button>
-        <input type="file" id="fileInput" style="display:none" onchange="loadFromFile(event)">
-        <button onclick="document.getElementById('fileInput').click()">Import JSON</button>
-        <button onclick="clearChat()">Clear LocalStorage</button>
+    <!-- Configuration Control Panel -->
+    <div id="sidebar">
+        <h2>Gemini Nano</h2>
+        
+        <div>
+            <h3>API Status</h3>
+            <div class="status-card">
+                <div id="status-dot" class="status-dot"></div>
+                <span id="status-text">Checking environment...</span>
+            </div>
+        </div>
+
+        <div>
+            <h3>System Persona</h3>
+            <textarea id="system-prompt" rows="4" placeholder="You are a precise technical helper. Keep replies short."></textarea>
+        </div>
+
+        <div>
+            <h3>Temperature</h3>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="range" id="temp-range" min="0.0" max="1.0" step="0.1" value="0.7" oninput="this.nextElementSibling.innerText = this.value">
+                <span style="font-size: 13px; min-width: 24px;">0.7</span>
+            </div>
+        </div>
+
+        <div>
+            <h3>Top-K</h3>
+            <input type="number" id="top-k" value="3" min="1" max="10">
+        </div>
+
+        <button id="btn-session" onclick="toggleSession()" disabled>Initialize Session</button>
+        <button style="background: transparent; color: var(--error); border: 1px solid var(--error);" onclick="clearChat()">Clear Window</button>
     </div>
 
-    <div id="chat-window"></div>
-
-    <div style="display: flex; flex-direction: column; gap: 8px;">
-        <textarea id="userInput" placeholder="Ask Gemini Nano..."></textarea>
-        <button id="sendBtn" onclick="askAI()" style="padding: 10px; cursor: pointer;">Send Prompt</button>
+    <!-- Active Chat Playground -->
+    <div id="chat-container">
+        <div id="history">
+            <div class="message system-msg">Initialize a session from the configuration panel to begin prompting the local model.</div>
+        </div>
+        <div id="input-area">
+            <input type="text" id="user-input" placeholder="Type a local prompt..." onkeydown="if(event.key === 'Enter') sendPrompt()" disabled>
+            <button id="btn-send" onclick="sendPrompt()" disabled>Execute</button>
+        </div>
     </div>
 
     <script>
-        let chatHistory = JSON.parse(localStorage.getItem('nano_chat')) || [];
-        let session = null;
+        let currentSession = null;
 
-        // Initialize session on load
-        async function init() {
-            renderChat();
-            if (!window.ai || !window.ai.languageModel) {
-                return alert("Prompt API not found. Enable 'Prompt API for Gemini Nano' in chrome://flags.");
+        // Verify runtime platform availability hooks on page load
+        async function checkAvailability() {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            const btnSession = document.getElementById('btn-session');
+
+            // Confirm global interface presence across modern Chrome channels
+            if (!window.ai || !window.ai.languageModel) { // Changed to match standardized window.ai structure
+                statusDot.style.background = 'var(--error)';
+                statusText.innerText = 'Unsupported browser environment';
+                return;
             }
-            const caps = await window.ai.languageModel.capabilities();
-            if (caps.available !== "readily") return alert("Model not ready. Status: " + caps.available);
-            
-            // Set for "Smart/Coding" logic
-            session = await window.ai.languageModel.create({ temperature: 0.2, topK: 15 });
-        }
-
-        async function askAI() {
-            const input = document.getElementById('userInput');
-            const text = input.value.trim();
-            if (!text || !session) return;
-
-            addMessage('user', text);
-            input.value = '';
-
-            const aiMsgDiv = addMessage('ai', 'Thinking...');
-            let fullResponse = "";
 
             try {
-                const stream = session.promptStreaming(text);
-                for await (const chunk of stream) {
-                    // Note: Chrome's Prompt API often returns the cumulative response in each chunk
-                    fullResponse = chunk;
-                    aiMsgDiv.innerText = fullResponse;
-                    document.getElementById('chat-window').scrollTop = 99999;
+                const capabilities = await window.ai.languageModel.capabilities(); // Standardized API method
+                const available = capabilities.available;
+
+                if (available === 'available') {
+                    statusDot.style.background = 'var(--success)';
+                    statusText.innerText = 'Local Model Ready';
+                    btnSession.disabled = false;
+                } else if (available === 'after-download') {
+                    statusDot.style.background = 'var(--accent)';
+                    statusText.innerText = 'Model downloading locally...';
+                } else {
+                    statusDot.style.background = 'var(--error)';
+                    statusText.innerText = `Unavailable state: ${available}`;
                 }
-                // Save final result to history
-                chatHistory[chatHistory.length - 1].content = fullResponse;
-                saveToLocal();
             } catch (err) {
-                aiMsgDiv.innerText = "Error: " + err.message;
+                statusDot.style.background = 'var(--error)';
+                statusText.innerText = 'Feature flags deactivated';
+                console.error(err);
             }
         }
 
-        function addMessage(role, content) {
-            chatHistory.push({ role, content });
-            return renderChat();
+        // Establish or destroy contextual model session
+        async function toggleSession() {
+            const btn = document.getElementById('btn-session');
+            const systemPrompt = document.getElementById('system-prompt').value;
+            const temp = parseFloat(document.getElementById('temp-range').value);
+            const topK = parseInt(document.getElementById('top-k').value);
+            const userInput = document.getElementById('user-input');
+            const btnSend = document.getElementById('btn-send');
+
+            if (!currentSession) {
+                // Initialize session instance
+                appendMessage('Initializing isolated context session...', 'system-msg');
+                try {
+                    currentSession = await window.ai.languageModel.create({ // API standard object creation
+                        systemPrompt: systemPrompt || undefined,
+                        temperature: temp,
+                        topK: topK
+                    });
+                    
+                    btn.innerText = 'Terminate Session';
+                    btn.style.background = 'var(--error)';
+                    btn.style.color = '#fff';
+                    userInput.disabled = false;
+                    btnSend.disabled = false;
+                    appendMessage('Session bound to local processing layer. Ready.', 'system-msg');
+                } catch (e) {
+                    appendMessage(`Initialization Error: ${e.message}`, 'system-msg');
+                }
+            } else {
+                // Free system hardware allocation explicitly 
+                currentSession.destroy(); // Changed to match standardized session release workflow
+                currentSession = null;
+                btn.innerText = 'Initialize Session';
+                btn.style.background = 'var(--accent)';
+                btn.style.color = '#0f172a';
+                userInput.disabled = true;
+                btnSend.disabled = true;
+                appendMessage('Session closed. VRAM cleared.', 'system-msg');
+            }
         }
 
-        function renderChat() {
-            const win = document.getElementById('chat-window');
-            win.innerHTML = chatHistory.map(m => `<div class="msg ${m.role}"><strong>${m.role.toUpperCase()}:</strong><br>${m.content}</div>`).join('');
-            win.scrollTop = 99999;
-            return win.lastElementChild;
+        // Process message payload and stream response tokens
+        async function sendPrompt() {
+            const inputField = document.getElementById('user-input');
+            const prompt = inputField.value.trim();
+            if (!prompt || !currentSession) return;
+
+            appendMessage(prompt, 'user');
+            inputField.value = '';
+
+            const modelMessageDiv = appendMessage('', 'model');
+            
+            try {
+                // Read from streaming generator interface
+                const stream = currentSession.promptStreaming(prompt); // Changed to follow standard prompt streaming method name
+                for await (const chunk of stream) {
+                    // Update content layout dynamically as tokens land
+                    modelMessageDiv.innerText = chunk.trim();
+                    document.getElementById('history').scrollTop = document.getElementById('history').scrollHeight;
+                }
+            } catch (err) {
+                modelMessageDiv.innerText = `Inference aborted: ${err.message}`;
+                modelMessageDiv.style.color = 'var(--error)';
+            }
         }
 
-        // Persistence
-        function saveToLocal() { localStorage.setItem('nano_chat', JSON.stringify(chatHistory)); }
-        function clearChat() { chatHistory = []; saveToLocal(); renderChat(); }
-
-        function saveToFile() {
-            const blob = new Blob([JSON.stringify(chatHistory, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'chat_history.json';
-            a.click();
+        function appendMessage(text, className) {
+            const history = document.getElementById('history');
+            const msg = document.createElement('div');
+            msg.className = `message ${className}`;
+            msg.innerText = text;
+            history.appendChild(msg);
+            history.scrollTop = history.scrollHeight;
+            return msg;
+            
         }
 
-        function loadFromFile(event) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                chatHistory = JSON.parse(e.target.result);
-                saveToLocal();
-                renderChat();
-            };
-            reader.readAsText(event.target.files[0]);
+        function clearChat() {
+            document.getElementById('history').innerHTML = '';
         }
 
-        // Run init
-        init();
+        window.onload = checkAvailability;
     </script>
 </body>
 </html>
