@@ -132,7 +132,7 @@
         <div class="small" id="meterText" style="margin-top:6px">No active session yet.</div>
       </div>
       <div style="margin-bottom:12px" class="small" id="explain">
-        Gemini Nano runs locally in Chrome (and a few other browsers) when supported, If not go to chrome://flags/ and enable Prompt API for Gemini Nano. LocalLLM Prompt interface by OxillenGlow and ChatGPT.
+        Runs *locally* in Chrome (not many other browsers though). Don't work? Go to chrome://flags/ and enable Prompt API for Gemini Nano. Local LLM interface by OxillenGlow and ChatGPT.
         https://oxillenglow.github.io/UI4chromeLLLM/
       </div>
       <div class="row" style="margin-bottom:10px">
@@ -221,7 +221,7 @@ function sync(){
 function renderAll(){renderChats();renderMsgs();renderRight()}
 
 async function probe(){
-  if(!("LanguageModel" in window)){setStatus("No Prompt API","r");return}
+  if(!("LanguageModel" in window)){setStatus("No Prompt API Please go to chrome://flags/ and enable Prompt API currently only on chrome :(","r");return}
   try{
     const avail=await LanguageModel.availability?.();
     const params=await LanguageModel.params?.();
@@ -281,7 +281,7 @@ async function send(){
   save();
 
   const fallback=async()=>{
-    out.content=`Fallback response:\n\nI received: "${text}"\n\nGemini Nano is not available in this browser session.`;
+    out.content=`Fallback response:\n\nI received: "${text}"\n\nGemini Nano is not available in this browser session. Go to chrome://flags/ and enable Prompt API `;
     renderAll(); save();
   };
 
