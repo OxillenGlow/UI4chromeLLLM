@@ -56,6 +56,21 @@
     .hidden{display:none}
     @media (max-width:1100px){body{grid-template-columns:240px 1fr}.right{display:none}}
     @media (max-width:800px){body{grid-template-columns:1fr;height:auto;overflow:auto}.left,.main,.right{min-height:60vh}}
+    .msg pre{
+    overflow:auto;
+    padding:12px;
+    border-radius:12px;
+    background:#00000033;
+  }
+  .msg code{
+    font-family:monospace;
+  }
+  .msg p{
+    margin:0 0 10px;
+  }
+  .msg a{
+    color:#8ab4ff;
+  }
   </style>
 </head>
 <body>
@@ -142,7 +157,7 @@
       <button id="addCtx" style="margin-top:10px">Add file/text context</button>
     </div>
   </aside>
-
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const KEY="gn_chat_v1";
 const presets={
@@ -174,13 +189,15 @@ function save(){localStorage.setItem(KEY,JSON.stringify({active:state.active,cha
 
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
 function renderText(s){
-  if(String(s).includes('class="thinking"')) return s;
+  s = String(s);
 
-  return escapeHtml(String(s))
-    .replace(/\n/g,"<br>")
-    .replace(/`([^`]+)`/g,"<code>$1</code>");
+  if(s.includes('class="thinking"')){
+    return s;
+  }
+
+  return marked.parse(s);
 }
-
+  
 function renderChats(){
   $("chatList").innerHTML=state.chats.map(c=>`
     <div class="item ${c.id===state.active?'active':''}" data-id="${c.id}">
@@ -191,8 +208,18 @@ function renderChats(){
 }
 function renderMsgs(){
   const c=chat();
+
   $("chatTitle").textContent=c.title||"Chat";
-  $("msgs").innerHTML=(c.messages.map(m=>`<div class="msg ${m.role==="user"?"u":""}"><div class="small" style="margin-bottom:6px">${m.role}</div>${renderText(m.content)}</div>`).join(""))||'<div class="msg">Start the conversation below.</div>';
+
+  $("msgs").innerHTML =
+    (c.messages.map(m=>`
+      <div class="msg ${m.role==="user"?"u":""}">
+        <div class="small" style="margin-bottom:6px">${m.role}</div>
+        <div>${renderText(m.content)}</div>
+      </div>
+    `).join("")) ||
+    '<div class="msg">Start the conversation below.</div>';
+
   $("msgs").scrollTop=$("msgs").scrollHeight;
 }
 function renderRight(){
