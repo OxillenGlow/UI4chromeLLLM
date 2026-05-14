@@ -3,204 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Nano Sandbox</title>
+    <title>Chrome Built-in AI Debugger</title>
     <style>
         :root {
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --border: #334155;
-            --text: #f8fafc;
-            --accent: #38bdf8;
-            --error: #ef4444;
-            --success: #22c55e;
+            --bg-color: #121214;
+            --surface-color: #1a1a1e;
+            --sidebar-color: #202024;
+            --border-color: #2d2d34;
+            --text-main: #e3e3e6;
+            --text-muted: #9ba0a6;
+            --accent-color: #8ab4f8;
+            --accent-hover: #aecbfa;
+            --success-color: #81c995;
+            --warning-color: #fdd663;
+            --error-color: #f28b82;
+            --terminal-bg: #050507;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-        #sidebar { width: 320px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        #chat-container { flex: 1; display: flex; flex-direction: column; height: 100%; position: relative; }
-        h3 { font-size: 14px; text-transform: uppercase; tracking: 0.05em; color: #94a3b8; margin-bottom: 5px; }
-        .status-card { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); font-size: 13px; display: flex; align-items: center; gap: 8px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
-        textarea, input, select { width: 100%; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 10px; font-size: 13px; resize: none; outline: none; }
-        textarea:focus, input:focus { border-color: var(--accent); }
-        button { background: var(--accent); color: #0f172a; font-weight: 600; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: opacity 0.2s; }
-        button:hover { opacity: 0.9; }
-        button:disabled { background: var(--border); color: #64748b; cursor: not-allowed; }
-        #history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .message { max-width: 85%; padding: 12px 16px; border-radius: 8px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
-        .user { background: var(--accent); color: #0f172a; align-self: flex-end; }
-        .model { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; }
-        .system-msg { align-self: center; font-size: 12px; color: #64748b; background: transparent; padding: 0; }
-        #input-area { padding: 20px; border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Configuration Panel */
+        #sidebar { width: 340px; background-color: var(--sidebar-color); border-right: 1px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+        h1 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 5px; }
+        .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 8px; }
+        .config-group { display: flex; flex-direction: column; gap: 6px; }
+        
+        /* Form Elements */
+        label { font-size: 12px; color: var(--text-main); font-weight: 500; }
+        textarea, input[type="text"], input[type="number"], select { background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 10px; font-size: 13px; outline: none; transition: border-color 0.2s; }
+        textarea:focus, input:focus, select:focus { border-color: var(--accent-color); }
+        textarea { resize: vertical; font-family: monospace; }
+        
+        /* Sliders */
+        .slider-container { display: flex; align-items: center; gap: 10px; }
+        input[type="range"] { flex: 1; accent-color: var(--accent-color); }
+        .slider-val { font-family: monospace; font-size: 13px; min-width: 25px; text-align: right; }
+
+        /* Status UI */
+        .status-box { background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
+        .status-row { display: flex; align-items: center; justify-content: space-between; }
+        .status-indicator { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-muted); }
+        .dot.checking { background-color: var(--warning-color); box-shadow: 0 0 8px var(--warning-color); }
+        .dot.available { background-color: var(--success-color); box-shadow: 0 0 8px var(--success-color); }
+        .dot.unavailable { background-color: var(--error-color); box-shadow: 0 0 8px var(--error-color); }
+        
+        /* Action Buttons */
+        button { background-color: var(--accent-color); color: #121214; border: none; padding: 11px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 0.2s, opacity 0.2s; }
+        button:hover { background-color: var(--accent-hover); }
+        button:disabled { background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
+        .btn-secondary { background-color: transparent; color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background-color: var(--bg-color); border-color: var(--text-muted); }
+        .btn-danger { background-color: transparent; color: var(--error-color); border: 1px solid rgba(242, 139, 130, 0.3); }
+        .btn-danger:hover { background-color: rgba(242, 139, 130, 0.1); }
+
+        /* Interaction Dashboard */
+        #main-panel { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-color); }
+        #terminal-header { background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+        #terminal-title { font-size: 13px; font-weight: 600; color: #fff; }
+        
+        #output-log { flex: 1; padding: 20px; background-color: var(--terminal-bg); overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6; display: flex; flex-direction: column; gap: 8px; }
+        .log-entry { white-space: pre-wrap; word-break: break-all; border-left: 3px solid transparent; padding-left: 10px; }
+        .log-sys { color: var(--text-muted); border-left-color: var(--border-color); }
+        .log-user { color: var(--accent-color); border-left-color: var(--accent-color); font-weight: 600; }
+        .log-model { color: var(--text-main); border-left-color: var(--success-color); }
+        .log-err { color: var(--error-color); border-left-color: var(--error-color); background-color: rgba(242, 139, 130, 0.05); padding: 6px 10px; border-radius: 0 4px 4px 0; }
+        .log-warn { color: var(--warning-color); border-left-color: var(--warning-color); }
+        
+        #input-dock { padding: 20px; background-color: var(--surface-color); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; }
+        #prompt-input { flex: 1; font-size: 14px; padding: 12px; }
     </style>
 </head>
 <body>
 
     <!-- Configuration Control Panel -->
     <div id="sidebar">
-        <h2>Gemini Nano</h2>
-        
         <div>
-            <h3>API Status</h3>
-            <div class="status-card">
-                <div id="status-dot" class="status-dot"></div>
-                <span id="status-text">Checking environment...</span>
+            <h1>Chromium API Hub</h1>
+            <p style="font-size: 12px; color: var(--text-muted);">Direct interface for local Gemini Nano</p>
+        </div>
+
+        <div class="config-group">
+            <div class="section-title">Diagnostics</div>
+            <div class="status-box">
+                <div class="status-row">
+                    <span>API Interface:</span>
+                    <span id="api-detection" style="font-family: monospace;">Checking...</span>
+                </div>
+                <div class="status-row">
+                    <span>Model State:</span>
+                    <div class="status-indicator">
+                        <div id="status-dot" class="dot"></div>
+                        <span id="status-text">Detecting...</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-secondary" style="margin-top: 4px; padding: 6px; font-size: 11px;" onclick="probeSystemEnvironment()">Recheck Capabilities</button>
+        </div>
+
+        <div class="config-group">
+            <div class="section-title">Session Configuration</div>
+            <label for="system-prompt">System Prompt</label>
+            <textarea id="system-prompt" rows="3" placeholder="Define model constraints or operational persona here..."></textarea>
+        </div>
+
+        <div class="config-group">
+            <label for="temp-slider">Temperature (Creativity)</label>
+            <div class="slider-container">
+                <input type="range" id="temp-slider" min="0" max="1" step="0.05" value="0.4" oninput="document.getElementById('temp-val').innerText = this.value">
+                <span id="temp-val" class="slider-val">0.4</span>
             </div>
         </div>
 
-        <div>
-            <h3>System Persona</h3>
-            <textarea id="system-prompt" rows="4" placeholder="You are a precise technical helper. Keep replies short."></textarea>
+        <div class="config-group">
+            <label for="top-k-input">Top-K</label>
+            <input type="number" id="top-k-input" min="1" max="100" value="3">
         </div>
 
-        <div>
-            <h3>Temperature</h3>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="range" id="temp-range" min="0.0" max="1.0" step="0.1" value="0.7" oninput="this.nextElementSibling.innerText = this.value">
-                <span style="font-size: 13px; min-width: 24px;">0.7</span>
-            </div>
+        <div class="config-group" style="margin-top: auto; gap: 10px;">
+            <button id="btn-session" onclick="handleSessionLifecycle()" disabled>Initialize Session</button>
+            <button class="btn-danger" onclick="clearConsoleLog()">Clear Log Screen</button>
         </div>
-
-        <div>
-            <h3>Top-K</h3>
-            <input type="number" id="top-k" value="3" min="1" max="10">
-        </div>
-
-        <button id="btn-session" onclick="toggleSession()" disabled>Initialize Session</button>
-        <button style="background: transparent; color: var(--error); border: 1px solid var(--error);" onclick="clearChat()">Clear Window</button>
     </div>
 
-    <!-- Active Chat Playground -->
-    <div id="chat-container">
-        <div id="history">
-            <div class="message system-msg">Initialize a session from the configuration panel to begin prompting the local model.</div>
+    <!-- Active Interaction Playground -->
+    <div id="main-panel">
+        <div id="terminal-header">
+            <div id="terminal-title">Console Output Streams</div>
+            <div id="session-badge" style="font-size: 11px; font-family: monospace; color: var(--text-muted);">Status: Disconnected</div>
         </div>
-        <div id="input-area">
-            <input type="text" id="user-input" placeholder="Type a local prompt..." onkeydown="if(event.key === 'Enter') sendPrompt()" disabled>
-            <button id="btn-send" onclick="sendPrompt()" disabled>Execute</button>
+        
+        <div id="output-log">
+            <!-- Programmatic log streams fill this layout -->
+        </div>
+
+        <div id="input-dock">
+            <input type="text" id="prompt-input" placeholder="Enter instructions to stream directly from local memory blocks..." onkeydown="if(event.key === 'Enter') dispatchPromptRequest()" disabled>
+            <button id="btn-dispatch" onclick="dispatchPromptRequest()" disabled>Execute</button>
         </div>
     </div>
 
     <script>
-        let currentSession = null;
+        let modelSessionInstance = null;
 
-        // Verify runtime platform availability hooks on page load
-        async function checkAvailability() {
+        // Diagnostic Probe matching exact modern chromium capability endpoints
+        async function probeSystemEnvironment() {
+            const apiLabel = document.getElementById('api-detection');
             const statusDot = document.getElementById('status-dot');
             const statusText = document.getElementById('status-text');
             const btnSession = document.getElementById('btn-session');
 
-            // Confirm global interface presence across modern Chrome channels
-            if (!window.ai || !window.ai.languageModel) { // Changed to match standardized window.ai structure
-                statusDot.style.background = 'var(--error)';
-                statusText.innerText = 'Unsupported browser environment';
+            // Standardize class resetting
+            statusDot.className = 'dot';
+
+            if (!window.ai || !window.ai.languageModel) {
+                apiLabel.innerText = "MISSING";
+                apiLabel.style.color = "var(--error-color)";
+                statusDot.classList.add('unavailable');
+                statusText.innerText = "API Unrecognized";
+                logToTerminal("CRITICAL: window.ai.languageModel is missing. Ensure you are running Chrome 138+ with 'Prompt API for Gemini Nano' flags set to Enabled.", "err");
                 return;
             }
 
-            try {
-                const capabilities = await window.ai.languageModel.capabilities(); // Standardized API method
-                const available = capabilities.available;
+            apiLabel.innerText = "DETECTED";
+            apiLabel.style.color = "var(--success-color)";
+            statusDot.classList.add('checking');
+            statusText.innerText = "Checking...";
 
-                if (available === 'available') {
-                    statusDot.style.background = 'var(--success)';
-                    statusText.innerText = 'Local Model Ready';
+            try {
+                // Verify platform availability constraints natively 
+                const capabilities = await window.ai.languageModel.capabilities();
+                const status = capabilities.available;
+
+                statusDot.className = 'dot';
+                
+                if (status === 'available') {
+                    statusDot.classList.add('available');
+                    statusText.innerText = "Available";
                     btnSession.disabled = false;
-                } else if (available === 'after-download') {
-                    statusDot.style.background = 'var(--accent)';
-                    statusText.innerText = 'Model downloading locally...';
+                    logToTerminal("SYSTEM: Local AI layer responds safely. Ready to allocate thread storage.", "sys");
+                } else if (status === 'after-download') {
+                    statusDot.classList.add('checking');
+                    statusText.innerText = "Downloading...";
+                    logToTerminal("WARNING: Model module recognized but requires component validation via chrome://components.", "warn");
                 } else {
-                    statusDot.style.background = 'var(--error)';
-                    statusText.innerText = `Unavailable state: ${available}`;
+                    statusDot.classList.add('unavailable');
+                    statusText.innerText = `Unavailable (${status})`;
+                    logToTerminal(`CRITICAL: Model state response explicitly marked unsupported: [${status}]`, "err");
                 }
-            } catch (err) {
-                statusDot.style.background = 'var(--error)';
-                statusText.innerText = 'Feature flags deactivated';
-                console.error(err);
+            } catch (error) {
+                statusDot.className = 'dot';
+                statusDot.classList.add('unavailable');
+                statusText.innerText = "Error Exception";
+                logToTerminal(`EXCEPTION: Capability assessment broken. Error code stack: ${error.message}`, "err");
             }
         }
 
-        // Establish or destroy contextual model session
-        async function toggleSession() {
+        // Context Manager lifecycle abstraction (Allocations / Disposals)
+        async function handleSessionLifecycle() {
             const btn = document.getElementById('btn-session');
-            const systemPrompt = document.getElementById('system-prompt').value;
-            const temp = parseFloat(document.getElementById('temp-range').value);
-            const topK = parseInt(document.getElementById('top-k').value);
-            const userInput = document.getElementById('user-input');
-            const btnSend = document.getElementById('btn-send');
+            const badge = document.getElementById('session-badge');
+            const promptInput = document.getElementById('prompt-input');
+            const btnDispatch = document.getElementById('btn-dispatch');
 
-            if (!currentSession) {
-                // Initialize session instance
-                appendMessage('Initializing isolated context session...', 'system-msg');
+            // Configuration Options Extraction
+            const systemPrompt = document.getElementById('system-prompt').value.trim();
+            const temperature = parseFloat(document.getElementById('temp-slider').value);
+            const topK = parseInt(document.getElementById('top-k-input').value, 10);
+
+            if (!modelSessionInstance) {
+                logToTerminal("SYSTEM: Forging new execution context with runtime configuration blocks...", "sys");
                 try {
-                    currentSession = await window.ai.languageModel.create({ // API standard object creation
-                        systemPrompt: systemPrompt || undefined,
-                        temperature: temp,
-                        topK: topK
-                    });
+                    // Create explicit session options payload object
+                    const creationOptions = {};
+                    if (systemPrompt) creationOptions.systemPrompt = systemPrompt;
+                    if (!isNaN(temperature)) creationOptions.temperature = temperature;
+                    if (!isNaN(topK)) creationOptions.topK = topK;
+
+                    modelSessionInstance = await window.ai.languageModel.create(creationOptions);
                     
-                    btn.innerText = 'Terminate Session';
-                    btn.style.background = 'var(--error)';
-                    btn.style.color = '#fff';
-                    userInput.disabled = false;
-                    btnSend.disabled = false;
-                    appendMessage('Session bound to local processing layer. Ready.', 'system-msg');
-                } catch (e) {
-                    appendMessage(`Initialization Error: ${e.message}`, 'system-msg');
+                    // Toggle User Interface Elements to Active State
+                    badge.innerText = "Status: Connected (Active Local Session)";
+                    badge.style.color = "var(--success-color)";
+                    btn.innerText = "Terminate Context Session";
+                    btn.style.backgroundColor = "var(--error-color)";
+                    
+                    promptInput.disabled = false;
+                    btnDispatch.disabled = false;
+                    promptInput.focus();
+                    
+                    logToTerminal("SUCCESS: Local Gemini Nano thread active. Awaiting user parameters.", "sys");
+                } catch (sessionException) {
+                    logToTerminal(`EXECUTION ERROR: Failed to create session context. Exception payload: ${sessionException.message}`, "err");
                 }
             } else {
-                // Free system hardware allocation explicitly 
-                currentSession.destroy(); // Changed to match standardized session release workflow
-                currentSession = null;
-                btn.innerText = 'Initialize Session';
-                btn.style.background = 'var(--accent)';
-                btn.style.color = '#0f172a';
-                userInput.disabled = true;
-                btnSend.disabled = true;
-                appendMessage('Session closed. VRAM cleared.', 'system-msg');
-            }
-        }
+                logToTerminal("SYSTEM: Signaling manual deallocation hooks to active thread...", "sys");
+                try {
+                    // Destroy target session interface memory footprint instantly
+                    modelSessionInstance.destroy();
+                    modelSessionInstance = null;
 
-        // Process message payload and stream response tokens
-        async function sendPrompt() {
-            const inputField = document.getElementById('user-input');
-            const prompt = inputField.value.trim();
-            if (!prompt || !currentSession) return;
+                    // Toggle User Interface Elements to Inactive State
+                    badge.innerText = "Status: Disconnected";
+                    badge.style.color = "var(--text-muted)";
+                    btn.innerText = "Initialize Session";
+                    btn.style.backgroundColor = "var(--accent-color)";
+                    
+                    promptInput.disabled = true;
+                    btnDispatch.disabled = true;
+                    promptInput.value = "";
 
-            appendMessage(prompt, 'user');
-            inputField.value = '';
-
-            const modelMessageDiv = appendMessage('', 'model');
-            
-            try {
-                // Read from streaming generator interface
-                const stream = currentSession.promptStreaming(prompt); // Changed to follow standard prompt streaming method name
-                for await (const chunk of stream) {
-                    // Update content layout dynamically as tokens land
-                    modelMessageDiv.innerText = chunk.trim();
-                    document.getElementById('history').scrollTop = document.getElementById('history').scrollHeight;
+                    logToTerminal("SYSTEM: Context wiped from local registers cleanly. Device thread available.", "sys");
+                } catch (teardownException) {
+                    logToTerminal(`CLEANUP ERROR: Memory pipeline release encountered resistance: ${teardownException.message}`, "err");
                 }
-            } catch (err) {
-                modelMessageDiv.innerText = `Inference aborted: ${err.message}`;
-                modelMessageDiv.style.color = 'var(--error)';
             }
         }
 
-        function appendMessage(text, className) {
-            const history = document.getElementById('history');
-            const msg = document.createElement('div');
-            msg.className = `message ${className}`;
-            msg.innerText = text;
-            history.appendChild(msg);
-            history.scrollTop = history.scrollHeight;
-            return msg;
-            
+        // Pipeline execution layer handling streaming iterations
+        async function dispatchPromptRequest() {
+            const textInput = document.getElementById('prompt-input');
+            const rawPrompt = textInput.value.trim();
+
+            if (!rawPrompt || !modelSessionInstance) return;
+
+            // Output user prompt visually to the diagnostic terminal
+            logToTerminal(`USER: ${rawPrompt}`, "user");
+            textInput.value = "";
+
+            // Create target stream logging instance
+            const logContainer = document.getElementById('output-log');
+            const liveStreamDiv = document.createElement('div');
+            liveStreamDiv.className = "log-entry log-model";
+            liveStreamDiv.innerText = "MODEL: ";
+            logContainer.appendChild(liveStreamDiv);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            try {
+                // Initialize asynchronous generation loop directly from runtime channel
+                const tokenStream = modelSessionInstance.promptStreaming(rawPrompt);
+                
+                for await (const cumulativeChunk of tokenStream) {
+                    // Clean token outputs sequentially as they are derived from VRAM
+                    liveStreamDiv.innerText = `MODEL: ${cumulativeChunk}`;
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            } catch (inferenceError) {
+                // Remove broken element and substitute clean error handling representation
+                liveStreamDiv.remove();
+                logToTerminal(`INFERENCE BLOCKED: Processing loop faulted or was canceled mid-stream. Trace: ${inferenceError.message}`, "err");
+            }
         }
 
-        function clearChat() {
-            document.getElementById('history').innerHTML = '';
+        // Terminal Log Utility Functions
+        function logToTerminal(message, type = "sys") {
+            const logContainer = document.getElementById('output-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerText = message;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
         }
 
-        window.onload = checkAvailability;
+        function clearConsoleLog() {
+            document.getElementById('output-log').innerHTML = "";
+            logToTerminal("SYSTEM: Terminal UI buffer cleared.", "sys");
+        }
+
+        // Trigger probe sequence on system document initialization
+        window.addEventListener('DOMContentLoaded', probeSystemEnvironment);
     </script>
 </body>
 </html>
