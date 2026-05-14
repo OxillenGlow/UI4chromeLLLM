@@ -1,318 +1,402 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chrome Built-in AI Debugger</title>
-    <style>
-        :root {
-            --bg-color: #121214;
-            --surface-color: #1a1a1e;
-            --sidebar-color: #202024;
-            --border-color: #2d2d34;
-            --text-main: #e3e3e6;
-            --text-muted: #9ba0a6;
-            --accent-color: #8ab4f8;
-            --accent-hover: #aecbfa;
-            --success-color: #81c995;
-            --warning-color: #fdd663;
-            --error-color: #f28b82;
-            --terminal-bg: #050507;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
-
-        /* Configuration Panel */
-        #sidebar { width: 340px; background-color: var(--sidebar-color); border-right: 1px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-        h1 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 5px; }
-        .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 8px; }
-        .config-group { display: flex; flex-direction: column; gap: 6px; }
-        
-        /* Form Elements */
-        label { font-size: 12px; color: var(--text-main); font-weight: 500; }
-        textarea, input[type="text"], input[type="number"], select { background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 10px; font-size: 13px; outline: none; transition: border-color 0.2s; }
-        textarea:focus, input:focus, select:focus { border-color: var(--accent-color); }
-        textarea { resize: vertical; font-family: monospace; }
-        
-        /* Sliders */
-        .slider-container { display: flex; align-items: center; gap: 10px; }
-        input[type="range"] { flex: 1; accent-color: var(--accent-color); }
-        .slider-val { font-family: monospace; font-size: 13px; min-width: 25px; text-align: right; }
-
-        /* Status UI */
-        .status-box { background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
-        .status-row { display: flex; align-items: center; justify-content: space-between; }
-        .status-indicator { display: flex; align-items: center; gap: 8px; font-weight: 500; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-muted); }
-        .dot.checking { background-color: var(--warning-color); box-shadow: 0 0 8px var(--warning-color); }
-        .dot.available { background-color: var(--success-color); box-shadow: 0 0 8px var(--success-color); }
-        .dot.unavailable { background-color: var(--error-color); box-shadow: 0 0 8px var(--error-color); }
-        
-        /* Action Buttons */
-        button { background-color: var(--accent-color); color: #121214; border: none; padding: 11px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 0.2s, opacity 0.2s; }
-        button:hover { background-color: var(--accent-hover); }
-        button:disabled { background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
-        .btn-secondary { background-color: transparent; color: var(--text-main); border: 1px solid var(--border-color); }
-        .btn-secondary:hover { background-color: var(--bg-color); border-color: var(--text-muted); }
-        .btn-danger { background-color: transparent; color: var(--error-color); border: 1px solid rgba(242, 139, 130, 0.3); }
-        .btn-danger:hover { background-color: rgba(242, 139, 130, 0.1); }
-
-        /* Interaction Dashboard */
-        #main-panel { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-color); }
-        #terminal-header { background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
-        #terminal-title { font-size: 13px; font-weight: 600; color: #fff; }
-        
-        #output-log { flex: 1; padding: 20px; background-color: var(--terminal-bg); overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6; display: flex; flex-direction: column; gap: 8px; }
-        .log-entry { white-space: pre-wrap; word-break: break-all; border-left: 3px solid transparent; padding-left: 10px; }
-        .log-sys { color: var(--text-muted); border-left-color: var(--border-color); }
-        .log-user { color: var(--accent-color); border-left-color: var(--accent-color); font-weight: 600; }
-        .log-model { color: var(--text-main); border-left-color: var(--success-color); }
-        .log-err { color: var(--error-color); border-left-color: var(--error-color); background-color: rgba(242, 139, 130, 0.05); padding: 6px 10px; border-radius: 0 4px 4px 0; }
-        .log-warn { color: var(--warning-color); border-left-color: var(--warning-color); }
-        
-        #input-dock { padding: 20px; background-color: var(--surface-color); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; }
-        #prompt-input { flex: 1; font-size: 14px; padding: 12px; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gemini Nano Chat Studio</title>
+  <style>
+    :root{--bg:#0b1020;--panel:#11182c;--text:#e8eefc;--muted:#9fb0d0;--border:#24304d;--accent:#7c9cff;--radius:16px}
+    *{box-sizing:border-box} html,body{height:100%;margin:0;font:14px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--text)}
+    body{display:grid;grid-template-columns:260px 1fr 300px;gap:12px;padding:12px}
+    .p{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);min-height:0;overflow:hidden}
+    .col{display:flex;flex-direction:column;min-height:0}
+    .h{padding:14px;border-bottom:1px solid var(--border)}
+    .b{padding:12px;overflow:auto;min-height:0;flex:1}
+    button,input,select,textarea{font:inherit}
+    button{border:1px solid var(--border);background:#16203a;color:var(--text);padding:8px 10px;border-radius:12px;cursor:pointer}
+    button.primary{background:var(--accent);border-color:transparent;color:#fff}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .item{padding:10px;border:1px solid transparent;border-radius:12px;cursor:pointer;margin-bottom:8px;background:#ffffff06}
+    .item.active{border-color:var(--accent);background:#7c9cff18}
+    .small{color:var(--muted);font-size:12px}
+    .msg{padding:12px;border:1px solid var(--border);border-radius:14px;margin:0 0 10px;background:#ffffff05}
+    .msg.u{background:#7c9cff14}
+    textarea,input,select{width:100%;border:1px solid var(--border);background:#0d1426;color:var(--text);border-radius:12px;padding:10px}
+    textarea{min-height:92px;resize:vertical}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:14px;border-bottom:1px solid var(--border)}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .dot{width:8px;height:8px;border-radius:50%;background:#ffcc66}
+    .dot.g{background:#39d98a}.dot.r{background:#ff7b7b}
+    .meter{height:8px;background:#ffffff10;border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+    .meter>div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#9d7cff)}
+    .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .tag{padding:6px 8px;border:1px solid var(--border);border-radius:999px;background:#ffffff08;color:var(--muted);font-size:12px}
+    .split{display:grid;grid-template-columns:1fr auto;gap:8px}
+    .footer{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    .hidden{display:none}
+    @media (max-width:1100px){body{grid-template-columns:240px 1fr}.right{display:none}}
+    @media (max-width:800px){body{grid-template-columns:1fr;height:auto;overflow:auto}.left,.main,.right{min-height:60vh}}
+  </style>
 </head>
 <body>
+  <aside class="p col left">
+    <div class="h">
+      <div class="row">
+        <button class="primary" id="newChat">New chat</button>
+        <button id="exportBtn">Export</button>
+        <button id="importBtn">Import</button>
+        <input id="importFile" type="file" accept="application/json" class="hidden">
+      </div>
+    </div>
+    <div class="b" id="chatList"></div>
+  </aside>
 
-    <!-- Configuration Control Panel -->
-    <div id="sidebar">
-        <div>
-            <h1>Chromium API Hub</h1>
-            <p style="font-size: 12px; color: var(--text-muted);">Direct interface for local Gemini Nano</p>
-        </div>
-
-        <div class="config-group">
-            <div class="section-title">Diagnostics</div>
-            <div class="status-box">
-                <div class="status-row">
-                    <span>API Interface:</span>
-                    <span id="api-detection" style="font-family: monospace;">Checking...</span>
-                </div>
-                <div class="status-row">
-                    <span>Model State:</span>
-                    <div class="status-indicator">
-                        <div id="status-dot" class="dot"></div>
-                        <span id="status-text">Detecting...</span>
-                    </div>
-                </div>
-            </div>
-            <button class="btn-secondary" style="margin-top: 4px; padding: 6px; font-size: 11px;" onclick="probeSystemEnvironment()">Recheck Capabilities</button>
-        </div>
-
-        <div class="config-group">
-            <div class="section-title">Session Configuration</div>
-            <label for="system-prompt">System Prompt</label>
-            <textarea id="system-prompt" rows="3" placeholder="Define model constraints or operational persona here..."></textarea>
-        </div>
-
-        <div class="config-group">
-            <label for="temp-slider">Temperature (Creativity)</label>
-            <div class="slider-container">
-                <input type="range" id="temp-slider" min="0" max="1" step="0.05" value="0.4" oninput="document.getElementById('temp-val').innerText = this.value">
-                <span id="temp-val" class="slider-val">0.4</span>
-            </div>
-        </div>
-
-        <div class="config-group">
-            <label for="top-k-input">Top-K</label>
-            <input type="number" id="top-k-input" min="1" max="100" value="3">
-        </div>
-
-        <div class="config-group" style="margin-top: auto; gap: 10px;">
-            <button id="btn-session" onclick="handleSessionLifecycle()" disabled>Initialize Session</button>
-            <button class="btn-danger" onclick="clearConsoleLog()">Clear Log Screen</button>
-        </div>
+  <main class="p col main">
+    <div class="top">
+      <div>
+        <div id="chatTitle" style="font-weight:700">New chat</div>
+        <div class="small">Multiple chats, context, personality, temperature, top-K</div>
+      </div>
+      <div class="pill"><span class="dot" id="dot"></span><span id="status">Checking model…</span></div>
     </div>
 
-    <!-- Active Interaction Playground -->
-    <div id="main-panel">
-        <div id="terminal-header">
-            <div id="terminal-title">Console Output Streams</div>
-            <div id="session-badge" style="font-size: 11px; font-family: monospace; color: var(--text-muted);">Status: Disconnected</div>
-        </div>
-        
-        <div id="output-log">
-            <!-- Programmatic log streams fill this layout -->
-        </div>
-
-        <div id="input-dock">
-            <input type="text" id="prompt-input" placeholder="Enter instructions to stream directly from local memory blocks..." onkeydown="if(event.key === 'Enter') dispatchPromptRequest()" disabled>
-            <button id="btn-dispatch" onclick="dispatchPromptRequest()" disabled>Execute</button>
-        </div>
+    <div class="b" id="msgs">
+      <div class="msg">This UI is ready for Gemini Nano when Chrome supports the Prompt API. It also includes a local fallback.</div>
     </div>
 
-    <script>
-        let modelSessionInstance = null;
+    <div style="padding:12px;border-top:1px solid var(--border)">
+      <div class="split">
+        <textarea id="input" placeholder="Ask something…"></textarea>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="primary" id="send">Send</button>
+          <button id="compact">Compact</button>
+        </div>
+      </div>
+      <div class="footer" style="margin-top:8px">
+        <div>Enter sends · Shift+Enter new line</div>
+        <div class="row">
+          <button id="useSel">Use selection</button>
+          <button id="usePage">Use page text</button>
+          <button id="clearCtx">Clear context</button>
+        </div>
+      </div>
+    </div>
+  </main>
 
-        // Diagnostic Probe matching exact modern chromium capability endpoints
-        async function probeSystemEnvironment() {
-            const apiLabel = document.getElementById('api-detection');
-            const statusDot = document.getElementById('status-dot');
-            const statusText = document.getElementById('status-text');
-            const btnSession = document.getElementById('btn-session');
+  <aside class="p col right">
+    <div class="b">
+      <div style="margin-bottom:12px">
+        <div class="small">Personality</div>
+        <select id="personality"></select>
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="small">Custom instructions</div>
+        <textarea id="custom" placeholder="Optional extra system instructions…"></textarea>
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="small">Temperature <span id="tempV">0.50</span></div>
+        <input id="temp" type="range" min="0" max="2" step="0.05" value="0.5">
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="small">Top-K <span id="topkV">3</span></div>
+        <input id="topk" type="range" min="1" max="128" step="1" value="3">
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="small">Context note</div>
+        <textarea id="context" placeholder="Project notes, constraints, style guide…"></textarea>
+        <div class="tags" id="tags"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="small">Context usage</div>
+        <div class="meter"><div id="meter"></div></div>
+        <div class="small" id="meterText" style="margin-top:6px">No active session yet.</div>
+      </div>
+      <div style="margin-bottom:12px" class="small" id="explain">
+        Gemini Nano runs locally in Chrome when supported. The app keeps separate chats, adds system context, and rebuilds sessions when settings change.
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <button id="connectBtn">Connect</button>
+      </div>
+      <input id="file" type="file" multiple class="hidden" accept=".txt,.md,.json,.csv,.log,.js,.ts,.html,.css,.yml,.yaml">
+      <button id="addCtx" style="margin-top:10px">Add file/text context</button>
+    </div>
+  </aside>
 
-            // Standardize class resetting
-            statusDot.className = 'dot';
+<script>
+const KEY="gn_chat_v1";
+const presets={
+  balanced:{label:"Balanced",prompt:"You are helpful, concise, and accurate."},
+  technical:{label:"Technical",prompt:"You are a senior software engineer. Be direct and practical."},
+  creative:{label:"Creative",prompt:"You are imaginative and offer varied ideas."},
+  teacher:{label:"Teacher",prompt:"You explain clearly, step by step."},
+  editor:{label:"Editor",prompt:"You improve clarity, structure, and tone."},
+  custom:{label:"Custom",prompt:""}
+};
+let state={active:null,chats:[],model:null,cache:new Map()};
+const $=id=>document.getElementById(id);
 
-            if (!window.ai || !window.ai.languageModel) {
-                apiLabel.innerText = "MISSING";
-                apiLabel.style.color = "var(--error-color)";
-                statusDot.classList.add('unavailable');
-                statusText.innerText = "API Unrecognized";
-                logToTerminal("CRITICAL: window.ai.languageModel is missing. Ensure you are running Chrome 138+ with 'Prompt API for Gemini Nano' flags set to Enabled.", "err");
-                return;
-            }
+function uid(){return crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random())}
+function now(){return new Date().toISOString()}
+function chat(){return state.chats.find(c=>c.id===state.active)||state.chats[0]}
+function makeChat(o={}){return {id:uid(),title:"New chat",personality:"balanced",custom:"",temperature:.5,topk:3,context:"",sources:[],summary:"",messages:[],createdAt:now(),updatedAt:now(),...o}}
 
-            apiLabel.innerText = "DETECTED";
-            apiLabel.style.color = "var(--success-color)";
-            statusDot.classList.add('checking');
-            statusText.innerText = "Checking...";
+function load(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(s?.chats?.length){state.chats=s.chats; state.active=s.active}
+    else throw 0
+  }catch{
+    state.chats=[makeChat()];
+    state.active=state.chats[0].id;
+  }
+}
+function save(){localStorage.setItem(KEY,JSON.stringify({active:state.active,chats:state.chats}))}
 
-            try {
-                // Verify platform availability constraints natively 
-                const capabilities = await window.ai.languageModel.capabilities();
-                const status = capabilities.available;
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
+function renderText(s){return escapeHtml(String(s)).replace(/\n/g,"<br>").replace(/`([^`]+)`/g,"<code>$1</code>")}
 
-                statusDot.className = 'dot';
-                
-                if (status === 'available') {
-                    statusDot.classList.add('available');
-                    statusText.innerText = "Available";
-                    btnSession.disabled = false;
-                    logToTerminal("SYSTEM: Local AI layer responds safely. Ready to allocate thread storage.", "sys");
-                } else if (status === 'after-download') {
-                    statusDot.classList.add('checking');
-                    statusText.innerText = "Downloading...";
-                    logToTerminal("WARNING: Model module recognized but requires component validation via chrome://components.", "warn");
-                } else {
-                    statusDot.classList.add('unavailable');
-                    statusText.innerText = `Unavailable (${status})`;
-                    logToTerminal(`CRITICAL: Model state response explicitly marked unsupported: [${status}]`, "err");
-                }
-            } catch (error) {
-                statusDot.className = 'dot';
-                statusDot.classList.add('unavailable');
-                statusText.innerText = "Error Exception";
-                logToTerminal(`EXCEPTION: Capability assessment broken. Error code stack: ${error.message}`, "err");
-            }
-        }
+function renderChats(){
+  $("chatList").innerHTML=state.chats.map(c=>`
+    <div class="item ${c.id===state.active?'active':''}" data-id="${c.id}">
+      <div style="font-weight:600">${escapeHtml(c.title)}</div>
+      <div class="small">${c.messages.length} messages</div>
+    </div>`).join("");
+  [...$("chatList").children].forEach(el=>el.onclick=()=>{state.active=el.dataset.id; sync(); renderAll(); save();});
+}
+function renderMsgs(){
+  const c=chat();
+  $("chatTitle").textContent=c.title||"Chat";
+  $("msgs").innerHTML=(c.messages.map(m=>`<div class="msg ${m.role==="user"?"u":""}"><div class="small" style="margin-bottom:6px">${m.role}</div>${renderText(m.content)}</div>`).join(""))||'<div class="msg">Start the conversation below.</div>';
+  $("msgs").scrollTop=$("msgs").scrollHeight;
+}
+function renderRight(){
+  const c=chat();
+  $("personality").value=c.personality;
+  $("custom").value=c.custom;
+  $("temp").value=c.temperature;
+  $("topk").value=c.topk;
+  $("tempV").textContent=Number(c.temperature).toFixed(2);
+  $("topkV").textContent=c.topk;
+  $("context").value=c.context;
+  $("tags").innerHTML=(c.sources||[]).map(s=>`<span class="tag">${escapeHtml(s.label)}</span>`).join("");
+  $("meter").style.width=Math.min(100,Math.max(0,(c.messages.length/20)*100))+"%";
+  $("meterText").textContent=`${c.messages.length} messages in this chat`;
+}
+function sync(){
+  const c=chat();
+  if(!c) return;
+  $("personality").innerHTML=Object.entries(presets).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join("");
+  $("personality").value=c.personality;
+  $("custom").value=c.custom;
+  $("temp").value=c.temperature;
+  $("topk").value=c.topk;
+  $("context").value=c.context;
+}
+function renderAll(){renderChats();renderMsgs();renderRight()}
 
-        // Context Manager lifecycle abstraction (Allocations / Disposals)
-        async function handleSessionLifecycle() {
-            const btn = document.getElementById('btn-session');
-            const badge = document.getElementById('session-badge');
-            const promptInput = document.getElementById('prompt-input');
-            const btnDispatch = document.getElementById('btn-dispatch');
+async function probe(){
+  if(!("LanguageModel" in window)){setStatus("No Prompt API","r");return}
+  try{
+    const avail=await LanguageModel.availability?.();
+    const params=await LanguageModel.params?.();
+    state.model={avail,params};
+    setStatus(avail==="available"?"Gemini Nano ready":String(avail),avail==="available"?"g":"");
+    $("status").title=params?JSON.stringify(params):"";
+  }catch{
+    setStatus("Model check failed","r");
+  }
+}
+function setStatus(text,cls=""){
+  $("status").textContent=text;
+  $("dot").className="dot"+(cls?` ${cls}`:"");
+}
 
-            // Configuration Options Extraction
-            const systemPrompt = document.getElementById('system-prompt').value.trim();
-            const temperature = parseFloat(document.getElementById('temp-slider').value);
-            const topK = parseInt(document.getElementById('top-k-input').value, 10);
+function systemPrompt(c){
+  const base=presets[c.personality]?.prompt||"";
+  const extra=c.custom?.trim()?`\n\n${c.custom.trim()}`:"";
+  const ctx=c.context?.trim()?`\n\nContext:\n${c.context.trim()}`:"";
+  const summary=c.summary?.trim()?`\n\nMemory summary:\n${c.summary.trim()}`:"";
+  return [base+extra+ctx+summary,"Be explicit if the browser/model does not support a capability.","When useful, answer in concise markdown."].join("\n---\n");
+}
 
-            if (!modelSessionInstance) {
-                logToTerminal("SYSTEM: Forging new execution context with runtime configuration blocks...", "sys");
-                try {
-                    // Create explicit session options payload object
-                    const creationOptions = {};
-                    if (systemPrompt) creationOptions.systemPrompt = systemPrompt;
-                    if (!isNaN(temperature)) creationOptions.temperature = temperature;
-                    if (!isNaN(topK)) creationOptions.topK = topK;
+async function getSession(c){
+  const cached=state.cache.get(c.id);
+  if(cached) return cached;
+  if(!("LanguageModel" in window)) return null;
+  const s=await LanguageModel.create({
+    systemPrompt:systemPrompt(c),
+    temperature:+c.temperature,
+    topK:+c.topk
+  });
+  state.cache.set(c.id,s);
+  return s;
+}
 
-                    modelSessionInstance = await window.ai.languageModel.create(creationOptions);
-                    
-                    // Toggle User Interface Elements to Active State
-                    badge.innerText = "Status: Connected (Active Local Session)";
-                    badge.style.color = "var(--success-color)";
-                    btn.innerText = "Terminate Context Session";
-                    btn.style.backgroundColor = "var(--error-color)";
-                    
-                    promptInput.disabled = false;
-                    btnDispatch.disabled = false;
-                    promptInput.focus();
-                    
-                    logToTerminal("SUCCESS: Local Gemini Nano thread active. Awaiting user parameters.", "sys");
-                } catch (sessionException) {
-                    logToTerminal(`EXECUTION ERROR: Failed to create session context. Exception payload: ${sessionException.message}`, "err");
-                }
-            } else {
-                logToTerminal("SYSTEM: Signaling manual deallocation hooks to active thread...", "sys");
-                try {
-                    // Destroy target session interface memory footprint instantly
-                    modelSessionInstance.destroy();
-                    modelSessionInstance = null;
+function rebuildSession(id){state.cache.delete(id)}
 
-                    // Toggle User Interface Elements to Inactive State
-                    badge.innerText = "Status: Disconnected";
-                    badge.style.color = "var(--text-muted)";
-                    btn.innerText = "Initialize Session";
-                    btn.style.backgroundColor = "var(--accent-color)";
-                    
-                    promptInput.disabled = true;
-                    btnDispatch.disabled = true;
-                    promptInput.value = "";
+async function send(){
+  const c=chat();
+  const text=$("input").value.trim();
+  if(!text) return;
 
-                    logToTerminal("SYSTEM: Context wiped from local registers cleanly. Device thread available.", "sys");
-                } catch (teardownException) {
-                    logToTerminal(`CLEANUP ERROR: Memory pipeline release encountered resistance: ${teardownException.message}`, "err");
-                }
-            }
-        }
+  c.messages.push({role:"user",content:text});
+  c.updatedAt=now();
+  if(c.title==="New chat") c.title=text.slice(0,36);
+  $("input").value="";
+  renderAll();
+  save();
 
-        // Pipeline execution layer handling streaming iterations
-        async function dispatchPromptRequest() {
-            const textInput = document.getElementById('prompt-input');
-            const rawPrompt = textInput.value.trim();
+  const out={role:"assistant",content:""};
+  c.messages.push(out);
+  renderAll();
+  save();
 
-            if (!rawPrompt || !modelSessionInstance) return;
+  const fallback=async()=>{
+    out.content=`Fallback response:\n\nI received: "${text}"\n\nGemini Nano is not available in this browser session.`;
+    renderAll(); save();
+  };
 
-            // Output user prompt visually to the diagnostic terminal
-            logToTerminal(`USER: ${rawPrompt}`, "user");
-            textInput.value = "";
+  try{
+    if(!("LanguageModel" in window)){await fallback();return}
+    const sess=await getSession(c);
+    if(!sess){await fallback();return}
 
-            // Create target stream logging instance
-            const logContainer = document.getElementById('output-log');
-            const liveStreamDiv = document.createElement('div');
-            liveStreamDiv.className = "log-entry log-model";
-            liveStreamDiv.innerText = "MODEL: ";
-            logContainer.appendChild(liveStreamDiv);
-            logContainer.scrollTop = logContainer.scrollHeight;
+    const prompt=buildPrompt(c,text);
+    const stream=await sess.promptStreaming(prompt);
+    out.content="";
+    for await (const chunk of stream){
+      out.content+=chunk;
+      renderMsgs();
+      save();
+    }
+  }catch(e){
+    out.content=`Error: ${e?.message||e}\n\n${c.messages.length ? "Try lowering context or reloading the session." : ""}`;
+  }
 
-            try {
-                // Initialize asynchronous generation loop directly from runtime channel
-                const tokenStream = modelSessionInstance.promptStreaming(rawPrompt);
-                
-                for await (const cumulativeChunk of tokenStream) {
-                    // Clean token outputs sequentially as they are derived from VRAM
-                    liveStreamDiv.innerText = `MODEL: ${cumulativeChunk}`;
-                    logContainer.scrollTop = logContainer.scrollHeight;
-                }
-            } catch (inferenceError) {
-                // Remove broken element and substitute clean error handling representation
-                liveStreamDiv.remove();
-                logToTerminal(`INFERENCE BLOCKED: Processing loop faulted or was canceled mid-stream. Trace: ${inferenceError.message}`, "err");
-            }
-        }
+  renderAll();
+  save();
+}
 
-        // Terminal Log Utility Functions
-        function logToTerminal(message, type = "sys") {
-            const logContainer = document.getElementById('output-log');
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            entry.innerText = message;
-            logContainer.appendChild(entry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
+function buildPrompt(c,text){
+  const parts=[];
+  if(c.sources?.length){
+    parts.push("Use this context if relevant:\n" + c.sources.map((s,i)=>`${i+1}. ${s.label}\n${s.text}`).join("\n\n"));
+  }
+  if(c.context?.trim()) parts.push("User context:\n" + c.context.trim());
+  if(c.summary?.trim()) parts.push("Conversation summary:\n" + c.summary.trim());
+  parts.push("Conversation:\n" + c.messages.slice(-12).map(m=>`${m.role}: ${m.content}`).join("\n"));
+  parts.push("User request:\n" + text);
+  return parts.join("\n\n---\n\n");
+}
 
-        function clearConsoleLog() {
-            document.getElementById('output-log').innerHTML = "";
-            logToTerminal("SYSTEM: Terminal UI buffer cleared.", "sys");
-        }
+async function compact(){
+  const c=chat();
+  if(c.messages.length<10) return;
+  const old=c.messages.slice(0,-6).map(m=>`${m.role}: ${m.content}`).join("\n");
+  c.summary=(c.summary ? c.summary + "\n" : "") + old.slice(0,3000);
+  c.messages=c.messages.slice(-6);
+  rebuildSession(c.id);
+  renderAll();
+  save();
+}
 
-        // Trigger probe sequence on system document initialization
-        window.addEventListener('DOMContentLoaded', probeSystemEnvironment);
-    </script>
+function addChat(){
+  const c=makeChat();
+  state.chats.unshift(c);
+  state.active=c.id;
+  renderAll();
+  save();
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify({active:state.active,chats:state.chats},null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="gemini-nano-chats.json";
+  a.click();
+}
+function importData(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      if(Array.isArray(data.chats)){
+        state.chats=data.chats;
+        state.active=data.active||data.chats[0].id;
+        state.cache.clear();
+        renderAll();
+        save();
+      }
+    }catch{}
+  };
+  r.readAsText(file);
+}
+
+function captureSelection(){
+  const s=String(getSelection()).trim();
+  if(!s) return;
+  chat().sources.push({label:"Selected text",text:s});
+  renderAll();
+  save();
+}
+async function capturePage(){
+  const txt=[...document.querySelectorAll("p,li,h1,h2,h3,h4,code,pre")].map(n=>n.innerText).join("\n").trim();
+  if(!txt) return;
+  chat().sources.push({label:"Page text",text:txt.slice(0,6000)});
+  renderAll();
+  save();
+}
+function clearContext(){
+  const c=chat();
+  c.context="";
+  c.sources=[];
+  rebuildSession(c.id);
+  renderAll();
+  save();
+}
+
+function bind(){
+  $("newChat").onclick=addChat;
+  $("exportBtn").onclick=exportData;
+  $("importBtn").onclick=()=>$("importFile").click();
+  $("importFile").onchange=e=>e.target.files[0]&&importData(e.target.files[0]);
+  $("send").onclick=send;
+  $("compact").onclick=compact;
+  $("input").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}};
+
+  $("personality").onchange=e=>{const c=chat(); c.personality=e.target.value; rebuildSession(c.id); renderAll(); save()};
+  $("custom").oninput=e=>{const c=chat(); c.custom=e.target.value; rebuildSession(c.id); save()};
+  $("temp").oninput=e=>{const c=chat(); c.temperature=+e.target.value; $("tempV").textContent=Number(c.temperature).toFixed(2); rebuildSession(c.id); save()};
+  $("topk").oninput=e=>{const c=chat(); c.topk=+e.target.value; $("topkV").textContent=c.topk; rebuildSession(c.id); save()};
+  $("context").oninput=e=>{const c=chat(); c.context=e.target.value; rebuildSession(c.id); save()};
+
+  $("addCtx").onclick=()=>$("file").click();
+  $("file").onchange=async e=>{
+    const files=[...(e.target.files||[])];
+    for(const f of files){
+      const text=await f.text();
+      chat().sources.push({label:f.name,text:text.slice(0,12000)});
+    }
+    e.target.value="";
+    renderAll();
+    save();
+  };
+
+  $("useSel").onclick=captureSelection;
+  $("usePage").onclick=capturePage;
+  $("clearCtx").onclick=clearContext;
+  $("connectBtn").onclick=probe;
+}
+
+function init(){
+  load();
+  bind();
+  sync();
+  renderAll();
+  probe();
+  $("status").title="Prompt API status";
+  if(chat()) $("personality").dispatchEvent(new Event("change"));
+}
+init();
+</script>
 </body>
 </html>
